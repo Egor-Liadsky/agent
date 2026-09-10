@@ -1,0 +1,6 @@
+[submodule "agent-cli"]
+	path = agent-cli
+	url = https://github.com/Egor-Liadsky/agent-cli.git
+[submodule "agent-sever"]
+	path = agent-sever
+	url = https://github.com/Egor-Liadsky/agent-server.git

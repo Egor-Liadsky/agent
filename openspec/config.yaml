@@ -1,0 +1,107 @@
+schema: spec-driven
+
+context: |
+  Language: ru
+  All artifacts must be written in ru.
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+
+  Каталог `/Users/egor_lyadskiy/ai` — зонтичный репозиторий
+  `https://github.com/Egor-Liadsky/agent`, оба репозитория ниже подключены к
+  нему подмодулями git и остаются независимыми: коммиты и пуш делаются из
+  каталога самого подмодуля. Этот экземпляр OpenSpec — общий, для изменений,
+  которые затрагивают оба репозитория сразу. Изменение, целиком лежащее внутри одного репозитория,
+  заводится в его собственном `openspec/`, а не здесь.
+
+  Репозитории (Rust, edition 2024):
+  - `agent-cli` — cargo workspace: `agentcore` (`crates/core`, ядро без
+    терминальных зависимостей), `agentupstream` (`crates/upstream`, облачный
+    Chat Completions, потребитель — только сервис), `agentclient`
+    (`crates/client`, `ServerAgent` поверх `POST {server_url}/v1/chat`),
+    `agentcli` (`crates/cli`, консольный клиент и TUI).
+  - `agent-sever` — HTTP-сервис `agentd` (axum, SQLite через sqlx). Имя
+    каталога содержит опечатку («sever»), так называется репозиторий: пути
+    не «исправлять».
+
+  Связь: `agent-sever/Cargo.toml` тянет `agentcore` и `agentupstream` из
+  ветки `main` репозитория `https://github.com/Egor-Liadsky/agent-cli`.
+  Локальный `agent-sever/.cargo/config.toml` (в `.gitignore`) подменяет эти
+  git-зависимости на `../agent-cli/crates/*` секцией `[patch]`, поэтому
+  локальная сборка идёт против рабочей копии ядра, а образ и CI — против
+  запушенного `main`.
+
+  Порядок изменения ядра, если правка нужна и сервису: изменить
+  `agent-cli/crates/core`, прогнать там `cargo test`, запушить в `main`,
+  затем в `agent-sever` временно убрать `[patch]`, выполнить
+  `cargo generate-lockfile` и прогнать `cargo test --locked`. Проверка, что
+  в лок-файле коммит, а не путь:
+  `grep -A2 'name = "agentcore"' agent-sever/Cargo.lock`.
+
+  Команды выполняются из каталога конкретного репозитория: общего workspace
+  над ними нет, `cargo` из `/Users/egor_lyadskiy/ai` не работает.
+  `agent-cli`: `cargo build --release`, `cargo test`,
+  `cargo run -p agentcli -- ask "вопрос"`, `cargo run -p agentcli -- chat`,
+  `cargo run -p agentcli -- config show`.
+  `agent-sever`: `cargo test`,
+  `AGENTD_UPSTREAM_API_KEY=sk-... PORT=8080 cargo run --release`,
+  `docker build -t agentd .`.
+
+  Граница ответственности: ключ облачного провайдера принадлежит сервису
+  (`AGENTD_UPSTREAM_API_KEY`); тело запроса с полем `api_key` сервис
+  отклоняет `400`. Клиент ходит в облако только через `agentd`, локальный
+  Ollama — напрямую с машины пользователя. Контракт `/v1`: `POST /v1/chat`,
+  `GET /v1/models`, `POST /v1/chats`, `GET /v1/chats`,
+  `GET /PATCH /DELETE /v1/chats/{id}`, `GET /healthz`, `GET /readyz`.
+  Ошибки — конверт `{ "error": { code, message, request_id } }`, тот же
+  идентификатор в заголовке `x-request-id`. Владелец чата — SHA-256-отпечаток
+  клиентского токена.
+
+  Соглашения: документация, doc-комментарии и комментарии в коде — на
+  русском; сообщения коммитов — на английском, в повелительном наклонении.
+  Комментарии объясняют выбор, а не пересказывают строку. README оба
+  подробные и правятся тем же изменением, что меняет поведение, команды,
+  переменные окружения или горячие клавиши. Новый провайдер добавляется
+  реализацией трейта `Agent`, новое правило обработки — реализацией стадии
+  `pipeline.rs`, а не правкой вызывающего кода. Причины ошибок различаются
+  через `downcast_ref` до `AgentError`, а не по тексту сообщения.
+
+rules:
+  proposal:
+    - В разделе Impact перечислять затронутые файлы по каждому репозиторию
+      отдельно, отдельными подзаголовками `agent-cli` и `agent-sever`.
+    - Указывать, требуется ли пуш `agent-cli` в `main` и обновление
+      `Cargo.lock` в `agent-sever`.
+  tasks:
+    - "Порядок задач для изменений в ядре: сначала правка и тесты
+      `agent-cli`, затем пуш в `main`, затем проверка `agent-sever`
+      с `cargo test --locked` без `[patch]`."
+    - Правку README обоих репозиториев держать отдельными задачами.
+
+operations:
+  apply:
+    guidance:
+      - Тесты запускать из каталога каждого репозитория отдельно; `cargo`
+        из корня `/Users/egor_lyadskiy/ai` не работает.
+      - "Локальный `agent-sever/.cargo/config.toml` с `[patch]` не коммитить
+        и не удалять: он в `.gitignore`."
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing
