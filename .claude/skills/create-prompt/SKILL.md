@@ -1,106 +1,173 @@
 ---
 name: create-prompt
-description: Составляет готовый структурированный промпт из неполного описания задачи, предварительно уточнив только те недостающие данные, без которых результат будет принципиально другим. Вызывать по просьбам «составь промпт», «напиши промпт», «сделай промпт для», а также по команде /create-prompt.
+description: Turns a vague task description into a ready, detailed prompt with four sections — Role, Goal, Steps, Report — asking only about gaps that would change the prompt fundamentally. Use for «составь промпт», «напиши промпт», «сделай промпт для», «промпт с ролью и отчётом», «составь роль», or /create-prompt.
 ---
 
-# Составление промпта
+# Create a prompt
 
-## Роль
+## Job
 
-Ты инженер промптов: человек, который превращает расплывчатое пожелание в
-точное техническое задание для другой языковой модели. Думай категориями
-«что модель на том конце должна знать, чтобы не угадывать», а не «как
-сформулировать покрасивее».
+Turn a vague request into a precise spec for another LLM. Think "what must
+the executor know so it doesn't guess", not "how to phrase it nicely".
 
-## Цель
+Output: one self-contained prompt with four sections — Role, Goal, Steps,
+Report. Test: two different models reading it in a clean session do the
+same work and report the same way. The role is a way to set bounds (who,
+end state, order, what to return), not a character description.
 
-Выдать один самодостаточный промпт, который можно скопировать и выполнить в
-чистой сессии без дополнительных пояснений. Промпт должен быть однозначным:
-две разные модели, прочитав его, обязаны сделать одно и то же.
+## Sections of the output prompt
 
-## Алгоритм
+Exactly four, in this order. No fifth section, no empty or padded ones.
 
-1. Разложи исходную просьбу по слотам:
-   - задача и ожидаемый результат (артефакт: код, текст, план, обзор);
-   - контекст и входные данные: файлы, репозиторий, домен, предыстория;
-   - адресат результата и его уровень подготовки;
-   - формат и объём вывода;
-   - ограничения: стек, стиль, язык, запреты, бюджет;
-   - критерии приёмки — как понять, что промпт отработал успешно;
-   - примеры или образцы, если они есть.
-2. Отметь пустые слоты.
-3. Раздели пустые слоты на блокирующие (от ответа зависит суть результата) и
-   остальные (закрываются разумным умолчанием).
-4. Спрашивай только по блокирующим — одним заходом через `AskUserQuestion`,
-   не больше трёх-четырёх вопросов, с вариантами ответа и помеченным
-   рекомендуемым. Не задавай вопрос, ответ на который виден в репозитории или
-   в самой просьбе: сначала проверь файлы, потом спрашивай.
-5. Остальные пробелы закрой умолчаниями и перечисли их явно — списком
-   «Принятые допущения» под готовым промптом, чтобы пользователь мог
-   возразить.
-6. Собери промпт и выдай его в блоке кода — целиком, без пропусков и без
-   плейсхолдеров вида `<...>`, которые пользователь должен дозаполнять сам.
+### Role
 
-## Структура выдаваемого промпта
+Who the executor is and what they own. Stack and tools: Rust edition, repo
+and crate, key libs (axum, sqlx, ratatui, tokio). Hard bounds: what not to
+do without explicit user consent.
 
-Роль и цель; контекст и входные данные; задача по шагам; ограничения и
-запреты; формат вывода; критерии приёмки. Раздел, для которого нет
-содержания, опускай, а не заполняй водой.
+Bounds must be checkable by reading a diff. Not "keep architecture clean"
+but "`crates/core` doesn't depend on `clap`, `ratatui`, `crossterm` or other
+terminal crates". Not "handle errors carefully" but "tell error causes apart
+via `downcast_ref::<AgentError>()`, not message text". Not "don't touch
+extra stuff" but "new provider = new `Agent` trait impl, not a caller edit".
 
-## Чего скилл не делает
+No filler like "world-class expert", "think step by step", "this is very
+important" — no effect, only length.
 
-- Не выполняет саму задачу из промпта — только составляет промпт.
-- Не устраивает допрос: если просьба полная, вопросов ноль, сразу результат.
-- Не добавляет ритуальных украшений без функции: «ты — эксперт мирового
-  уровня», «подумай шаг за шагом» и подобное.
-- Не выдумывает факты о проекте: недостающее либо спрашивается, либо
-  помечается допущением.
+### Goal
 
-## Язык
+End state and how to tell the work is done. Describe the result, not the
+process: not "work on the doc" but "all sections written and match the code".
 
-Промпт составляется на языке, на котором пользователь ведёт диалог. Код,
-идентификаторы, CLI-команды, имена файлов, переменные окружения и точные
-тексты ошибок остаются в оригинале и не переводятся.
+If there is a source of truth (doc, spec, issue), name it by file or link,
+plus the rule for when it disagrees with reality.
 
-## Пример
+### Steps
 
-Просьба: «составь промпт, чтобы написали тесты на парсер конфига».
+Numbered, fixed order, at least five:
 
-Блокирующие слоты пусты: неясен язык и фреймворк тестов и неясно, нужны ли
-негативные случаи. Один заход `AskUserQuestion`:
+1. **Read** — what to read before the first edit (`CLAUDE.md`, repo README,
+   `openspec/changes/<name>/`, existing code and tests).
+2. **Scope** — which repo (`agent-cli` or `agent-sever`), crates, modules,
+   files are touched; what must not be created.
+3. **Implement** — order across crates/modules/sections and why. If both
+   core and service change, follow `CLAUDE.md`: `agent-cli/crates/core`
+   first, push to `main`, then service `Cargo.lock`.
+4. **Check** — exact full commands and the dir to run them from (not "run
+   tests"; `cargo` fails in the umbrella root). On failure: quote the
+   shortest decisive output line and don't claim success.
+5. **Record** — where to write decisions before reporting: OpenSpec
+   `design.md` or `tasks.md`, README, commit body.
 
-1. «Какой стек тестов?» — варианты: `cargo test` в том же крейте
-   (рекомендуемый), отдельный интеграционный каталог `tests/`, другое.
-2. «Что покрывать?» — варианты: только happy path, happy path плюс ошибки
-   разбора (рекомендуемый), плюс property-тесты.
+### Report
 
-Пользователь выбрал рекомендуемые варианты. Итог:
+1. What was done — by meaning, not a file list.
+2. Checks as run: command and result; skipped steps named as skipped.
+3. Decisions and deliberately deferred items.
+4. One concrete next step, not a wish list.
+
+## Algorithm
+
+1. Map the request onto slots: executor, stack, bounds; end state and source
+   of truth; step order and check commands; report form and where to record
+   decisions.
+2. Mark empty slots as blocking (answer changes the prompt's core) or
+   non-blocking (a sane default works).
+3. Before asking, read the repo: root `CLAUDE.md`, README and `Cargo.toml`
+   of the target submodule, active `openspec/changes/`. Don't ask what files
+   or the request already answer. If files contradict the request, say so and
+   use the fact from files.
+4. Close blocking slots in one `AskUserQuestion` call: max 3–4 questions,
+   each with options and one marked recommended.
+5. Fill other gaps with defaults and list them as "Assumptions" under the
+   prompt so the user can object.
+6. Output the whole prompt in one code block.
+
+## Don't
+
+- Do the task itself — only write the prompt.
+- Leave `<...>` placeholders for the user to fill.
+- Invent project facts: ask or mark as an assumption.
+- Interrogate: if the request is complete, zero questions.
+
+## Language
+
+Write the prompt in the language the user speaks in the chat. Code,
+identifiers, file names, CLI commands, flags, env vars and exact error texts
+stay as is.
+
+## Example
+
+Request: "write a prompt for whoever will fix the failing service tests".
+
+Repo reading gave: `agent-sever` = `agentd`, axum, edition 2024, SQLite via
+`sqlx`, migrations in `migrations/*.sql`; contract tests in `src/tests.rs`,
+provider mocked by `wiremock`; run `cargo test` from `agent-sever`; core
+patched locally via `[patch]` to `../agent-cli/crates/core`. Blocking slots:
+what the executor may change, where to record decisions. One
+`AskUserQuestion` call:
+
+1. "What may the executor change?" — tests and service code if the bug is
+   there (recommended); plus core in `agent-cli`; tests only, list code bugs.
+2. "Where to record decisions?" — commit body (recommended); new OpenSpec
+   change with `design.md`; nowhere, chat report only.
+
+User picked the recommended options. Result (shown in English here; the real
+output follows the user's language):
 
 ```
-Роль: инженер по тестированию Rust-кода.
-Цель: покрыть модульными тестами парсер конфигурации в crates/core/src/config.rs.
+## Role
 
-Контекст: крейт agentcore, edition 2024. Парсер читает TOML и возвращает
-Result<Config, ConfigError>. Тесты живут рядом с кодом, в модуле
-#[cfg(test)] того же файла, и запускаются через cargo test.
+Test engineer for agentd in /Users/egor_lyadskiy/ai/agent-sever: Rust
+edition 2024, axum, tokio, SQLite via sqlx, /v1 contract tests in
+src/tests.rs, provider mocked by wiremock. agentcore is a git dep, locally
+patched via [patch] in .cargo/config.toml to ../agent-cli/crates/core.
+You own making cargo test pass fully.
 
-Задача:
-1. Прочитай crates/core/src/config.rs и выпиши все поля Config, их типы,
-   значения по умолчанию и все варианты ConfigError.
-2. На каждое поле напиши тест успешного разбора: значение задано явно и
-   значение взято из умолчания.
-3. На каждый вариант ConfigError напиши тест, который его вызывает, и
-   проверяй вариант через сопоставление с образцом, а не по тексту ошибки.
-4. Прогони cargo test и починь падения.
+Bounds (break only with explicit user consent):
 
-Ограничения: только стандартный cargo test, новые зависимости не добавлять;
-существующий код парсера не менять; комментарии в тестах на русском.
+- a failing test is not deleted, marked #[ignore] or weakened into an
+  always-passing check;
+- no edits in ../agent-cli: a core bug is described in the report and the
+  test stays failing;
+- no new deps in Cargo.toml, no version changes;
+- applied migrations in migrations/ are not edited — schema changes only
+  via a new migration file;
+- the error envelope { "error": { "code", "message", "request_id" } } and
+  endpoint HTTP codes don't change to make a test pass;
+- no real provider in tests, no real AGENTD_UPSTREAM_API_KEY: wiremock only;
+- a service code bug is fixed in code, not in the test expectation.
 
-Формат вывода: полный код модуля тестов и вывод cargo test.
+## Goal
 
-Критерии приёмки: cargo test проходит; каждое поле Config и каждый вариант
-ConfigError имеет хотя бы один тест.
+cargo test in agent-sever passes: zero failures, no new #[ignore]. Each fix
+is explainable — clear whether test or code was wrong. Source of truth:
+service README.md and openspec/specs/; if README, spec and code disagree,
+ask the user, don't pick silently.
+
+## Steps
+
+1. Read. /Users/egor_lyadskiy/ai/CLAUDE.md and README.md endpoint sections,
+   then from agent-sever run cargo test --no-fail-fast and list all
+   failures: test name, line, kind (compile error, panic, assert_eq!
+   mismatch). Edit nothing until the list is ready.
+2. Scope. For each failure name the src/ module and decide: bug in test,
+   service code or core. Don't touch other modules, don't create new ones.
+3. Implement. Compile errors first (no test runs until the crate builds),
+   then panics and value mismatches. One test at a time; after each fix run
+   the full cargo test to catch regressions.
+4. Check. Final run from agent-sever: cargo build, then cargo test. On
+   failure quote the shortest decisive line (error[E…] with path and line,
+   or test name with first panic line) and don't claim success.
+5. Record. Decisions go in the commit body in English: which tests were
+   fixed, test or code bug, which alternative was rejected and why. List
+   unfixed core bugs separately.
+
+## Report
+
+1. Done: how many tests were fixed and what bugs were found, by meaning.
+2. Checks: results of cargo build and cargo test; skipped ones named.
+3. Decisions and deferred items — e.g. an agentcore bug to fix in
+   agent-cli, or a test that passes but doesn't check what its name says.
+4. One concrete next step.
 ```
-
-Принятые допущения: имя файла парсера уточнено чтением репозитория; стиль
-комментариев и язык взяты из соглашений проекта.
