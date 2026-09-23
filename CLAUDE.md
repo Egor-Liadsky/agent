@@ -2,17 +2,20 @@
 
 Рабочая директория `/Users/egor_lyadskiy/ai` — зонтичный репозиторий
 `https://github.com/Egor-Liadsky/agent`. Кода в нём нет: он хранит этот файл и
-общий экземпляр OpenSpec, а два репозитория на Rust (edition 2024), связанных
-общим ядром, подключены подмодулями git и остаются независимыми:
+общий экземпляр OpenSpec, а весь код живёт в трёх независимых репозиториях на
+Rust (edition 2024), подключённых подмодулями git: двух, связанных общим
+ядром, и MCP-сервере, с которым клиент связан только процессом:
 
 | Каталог        | Что это                                                              |
 |----------------|----------------------------------------------------------------------|
 | `agent-cli`    | cargo workspace: библиотека `agentcore` (`crates/core`) и бинарник `agentcli` (`crates/cli`) — консольный клиент и TUI-чат |
 | `agent-sever`  | HTTP-сервис `agentd` (axum), подключающий `agentcore` git-зависимостью |
+| `mcp`          | cargo workspace `git-mcp-agent`: MCP-сервер git-инструментов `git-mcp` (`crates/git`, rmcp) |
 
 Имя каталога `agent-sever` содержит опечатку («sever» вместо «server»), но
 именно так называется путь подмодуля — не «исправлять» пути; репозиторий на
-GitHub при этом называется `agent-server`.
+GitHub при этом называется `agent-server`. Аналогично подмодуль `mcp` —
+репозиторий `git-mcp-agent`.
 
 Коммитить работу в каждом подмодуле из его каталога и пушить в его собственный
 `origin`. Зонтичный репозиторий хранит лишь указатель на коммит подмодуля:
@@ -41,6 +44,30 @@ workspace над ними нет, `cargo` из `/Users/egor_lyadskiy/ai` не р
 Проверка, что в лок-файле коммит, а не путь:
 `grep -A2 'name = "agentcore"' agent-sever/Cargo.lock`.
 
+## Связь `agentcli` ↔ `git-mcp`
+
+Git-инструменты клиенту даёт MCP-сервер `git-mcp` из подмодуля `mcp`. Связь
+только через процесс: `agentcli` запускает `git-mcp --repository <путь>` и
+говорит с ним JSON-RPC через stdin/stdout (`crates/cli/src/mcp.rs`).
+Cargo-зависимости между ними нет ни в одну сторону: в `mcp/**/Cargo.toml`
+не бывает `agentcore`, `agentclient`, `agentupstream`, `agentcli`, а
+`agent-cli` не зависит от `git-mcp`. Имена инструментов и схемы аргументов
+— общий контракт: `READ_ONLY_TOOLS` в `mcp.rs` классифицирует инструменты
+по имени, поэтому переименование инструмента на сервере требует правки
+клиента.
+
+Клиент ищет бинарник так: путь из `AGENTCLI_GIT_MCP` (берётся как есть) →
+рядом с исполняемым `agentcli` → `PATH`. Workspace `agent-cli` сервер не
+собирает, поэтому для локального запуска из исходников:
+
+```bash
+(cd mcp && cargo build --release)
+cd agent-cli && AGENTCLI_GIT_MCP=$PWD/../mcp/target/release/git-mcp cargo run -p agentcli -- chat
+```
+
+Путь в `AGENTCLI_GIT_MCP` для `cargo test` — абсолютный: тесты идут из
+каталога крейта.
+
 ## Команды
 
 `agent-cli`:
@@ -60,6 +87,18 @@ cargo test
 AGENTD_UPSTREAM_API_KEY=sk-... PORT=8080 cargo run --release
 docker build -t agentd .
 ```
+
+`mcp`:
+
+```bash
+cargo build --release
+cargo test                                   # тесты протокола запускают собранный git-mcp
+cargo clippy --all-targets -- -D warnings
+cargo run --release -- --repository <путь>   # сервер на stdio
+```
+
+Живой тест клиента против настоящего сервера (из `agent-cli`):
+`AGENTCLI_GIT_MCP=$PWD/../mcp/target/release/git-mcp cargo test -p agentcli live_server -- --ignored`.
 
 ## Устройство `agent-cli`
 

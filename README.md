@@ -1,9 +1,10 @@
 # agent
 
-Зонтичный репозиторий проекта: сам кода не содержит, а связывает два
+Зонтичный репозиторий проекта: сам кода не содержит, а связывает три
 независимых репозитория на Rust (edition 2024) подмодулями git и хранит общие
 для них артефакты — инструкцию `CLAUDE.md` и общий экземпляр OpenSpec
-(`openspec/`, `.claude/`) для изменений, затрагивающих оба репозитория сразу.
+(`openspec/`, `.claude/`) для изменений, затрагивающих несколько репозиториев
+сразу. Весь код живёт в подмодулях.
 
 ## Подмодули
 
@@ -11,6 +12,7 @@
 |---------|-------------|---------|
 | `agent-cli` | [Egor-Liadsky/agent-cli](https://github.com/Egor-Liadsky/agent-cli) | cargo workspace: библиотека `agentcore` (`crates/core`) — ядро без терминальных зависимостей — и бинарник `agentcli` (`crates/cli`), консольный клиент и TUI-чат |
 | `agent-sever` | [Egor-Liadsky/agent-server](https://github.com/Egor-Liadsky/agent-server) | HTTP-сервис `agentd` (axum, SQLite через sqlx), подключающий `agentcore` git-зависимостью |
+| `mcp` | [Egor-Liadsky/git-mcp-agent](https://github.com/Egor-Liadsky/git-mcp-agent) | cargo workspace с MCP-сервером git-инструментов `git-mcp` (`crates/git`), который `agentcli` запускает процессом |
 
 Имя каталога `agent-sever` содержит опечатку («sever» вместо «server»), но
 именно так называется путь подмодуля — не «исправлять».
@@ -30,6 +32,21 @@
 2. Запушить `agent-cli` в `main`.
 3. В `agent-sever` временно убрать `[patch]`, выполнить
    `cargo generate-lockfile` и прогнать `cargo test --locked`.
+
+### `agentcli` и `git-mcp`
+
+Git-инструменты клиенту даёт MCP-сервер `git-mcp` из подмодуля `mcp`. Связь
+только через процесс и протокол MCP (JSON-RPC через stdin/stdout):
+cargo-зависимости между `agent-cli` и `mcp` нет ни в одну сторону, сервер
+подключается и к другим MCP-клиентам. Клиент ищет бинарник так: путь из
+переменной окружения `AGENTCLI_GIT_MCP` → рядом с исполняемым `agentcli` →
+`PATH`. Установка сервера:
+
+```bash
+cargo install --git https://github.com/Egor-Liadsky/git-mcp-agent git-mcp
+# или из подмодуля:
+cargo install --path mcp/crates/git
+```
 
 ## Клонирование
 
@@ -57,7 +74,8 @@ git commit -am "Update submodules"
 конкретного репозитория, `cargo` из корня не работает.
 
 ```bash
-cd agent-cli   && cargo test && cargo run -p agentcli -- chat
+cd mcp         && cargo test && cargo build --release
+cd agent-cli   && cargo test && AGENTCLI_GIT_MCP=$PWD/../mcp/target/release/git-mcp cargo run -p agentcli -- chat
 cd agent-sever && cargo test && AGENTD_UPSTREAM_API_KEY=sk-... PORT=8080 cargo run --release
 ```
 
