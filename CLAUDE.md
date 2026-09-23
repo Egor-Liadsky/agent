@@ -2,20 +2,25 @@
 
 Рабочая директория `/Users/egor_lyadskiy/ai` — зонтичный репозиторий
 `https://github.com/Egor-Liadsky/agent`. Кода в нём нет: он хранит этот файл и
-общий экземпляр OpenSpec, а весь код живёт в трёх независимых репозиториях на
-Rust (edition 2024), подключённых подмодулями git: двух, связанных общим
-ядром, и MCP-сервере, с которым клиент связан только процессом:
+общий экземпляр OpenSpec, а весь код живёт в независимых репозиториях на Rust
+(edition 2024), подключённых подмодулями git: двух, связанных общим ядром, и
+MCP-серверах в каталоге `mcp/`, с которыми клиент связан только процессом:
 
 | Каталог        | Что это                                                              |
 |----------------|----------------------------------------------------------------------|
 | `agent-cli`    | cargo workspace: библиотека `agentcore` (`crates/core`) и бинарник `agentcli` (`crates/cli`) — консольный клиент и TUI-чат |
 | `agent-sever`  | HTTP-сервис `agentd` (axum), подключающий `agentcore` git-зависимостью |
-| `mcp`          | cargo workspace `git-mcp-agent`: MCP-сервер git-инструментов `git-mcp` (`crates/git`, rmcp) |
+| `mcp/git`      | cargo workspace `git-mcp-agent`: MCP-сервер git-инструментов `git-mcp` (`crates/git`, rmcp) |
 
 Имя каталога `agent-sever` содержит опечатку («sever» вместо «server»), но
 именно так называется путь подмодуля — не «исправлять» пути; репозиторий на
-GitHub при этом называется `agent-server`. Аналогично подмодуль `mcp` —
+GitHub при этом называется `agent-server`. Аналогично подмодуль `mcp/git` —
 репозиторий `git-mcp-agent`.
+
+`mcp/` — обычный каталог зонтика, а не подмодуль: в нём лежат MCP-серверы,
+каждый своим подмодулем `mcp/<имя>` со своим cargo workspace. Новый сервер
+подключается `git submodule add <url> mcp/<имя>` и добавляется строкой в
+таблицы `mcp/README.md`, `README.md` и этого файла.
 
 Коммитить работу в каждом подмодуле из его каталога и пушить в его собственный
 `origin`. Зонтичный репозиторий хранит лишь указатель на коммит подмодуля:
@@ -46,7 +51,7 @@ workspace над ними нет, `cargo` из `/Users/egor_lyadskiy/ai` не р
 
 ## Связь `agentcli` ↔ `git-mcp`
 
-Git-инструменты клиенту даёт MCP-сервер `git-mcp` из подмодуля `mcp`. Связь
+Git-инструменты клиенту даёт MCP-сервер `git-mcp` из подмодуля `mcp/git`. Связь
 только через процесс: `agentcli` запускает `git-mcp --repository <путь>` и
 говорит с ним JSON-RPC через stdin/stdout (`crates/cli/src/mcp.rs`).
 Cargo-зависимости между ними нет ни в одну сторону: в `mcp/**/Cargo.toml`
@@ -61,8 +66,8 @@ Cargo-зависимости между ними нет ни в одну сто�
 собирает, поэтому для локального запуска из исходников:
 
 ```bash
-(cd mcp && cargo build --release)
-cd agent-cli && AGENTCLI_GIT_MCP=$PWD/../mcp/target/release/git-mcp cargo run -p agentcli -- chat
+(cd mcp/git && cargo build --release)
+cd agent-cli && AGENTCLI_GIT_MCP=$PWD/../mcp/git/target/release/git-mcp cargo run -p agentcli -- chat
 ```
 
 Путь в `AGENTCLI_GIT_MCP` для `cargo test` — абсолютный: тесты идут из
@@ -88,7 +93,7 @@ AGENTD_UPSTREAM_API_KEY=sk-... PORT=8080 cargo run --release
 docker build -t agentd .
 ```
 
-`mcp`:
+`mcp/git` (и любой сервер в `mcp/<имя>`):
 
 ```bash
 cargo build --release
@@ -98,7 +103,7 @@ cargo run --release -- --repository <путь>   # сервер на stdio
 ```
 
 Живой тест клиента против настоящего сервера (из `agent-cli`):
-`AGENTCLI_GIT_MCP=$PWD/../mcp/target/release/git-mcp cargo test -p agentcli live_server -- --ignored`.
+`AGENTCLI_GIT_MCP=$PWD/../mcp/git/target/release/git-mcp cargo test -p agentcli live_server -- --ignored`.
 
 ## Устройство `agent-cli`
 

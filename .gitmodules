@@ -4,6 +4,6 @@
 [submodule "agent-sever"]
 	path = agent-sever
 	url = https://github.com/Egor-Liadsky/agent-server.git
-[submodule "mcp"]
-	path = mcp
+[submodule "mcp/git"]
+	path = mcp/git
 	url = https://github.com/Egor-Liadsky/git-mcp-agent.git
