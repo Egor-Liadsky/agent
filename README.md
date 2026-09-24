@@ -13,6 +13,7 @@
 | `agent-cli` | [Egor-Liadsky/agent-cli](https://github.com/Egor-Liadsky/agent-cli) | cargo workspace: библиотека `agentcore` (`crates/core`) — ядро без терминальных зависимостей — и бинарник `agentcli` (`crates/cli`), консольный клиент и TUI-чат |
 | `agent-sever` | [Egor-Liadsky/agent-server](https://github.com/Egor-Liadsky/agent-server) | HTTP-сервис `agentd` (axum, SQLite через sqlx), подключающий `agentcore` git-зависимостью |
 | `mcp/git` | [Egor-Liadsky/git-mcp-agent](https://github.com/Egor-Liadsky/git-mcp-agent) | cargo workspace с MCP-сервером git-инструментов `git-mcp` (`crates/git`), который `agentcli` запускает процессом |
+| `mcp/activity` | [Egor-Liadsky/activity-mcp-agent](https://github.com/Egor-Liadsky/activity-mcp-agent) | cargo workspace с демоном `activity-mcp` (`crates/activity`): журнал изменений git-проектов и сводки по расписанию; `agentcli` подключается к нему по HTTP |
 
 Имя каталога `agent-sever` содержит опечатку («sever» вместо «server»), но
 именно так называется путь подмодуля — не «исправлять».
@@ -48,6 +49,21 @@ cargo install --git https://github.com/Egor-Liadsky/git-mcp-agent git-mcp
 cargo install --path mcp/git/crates/git
 ```
 
+### `agentcli` и `activity-mcp`
+
+Демон `activity-mcp` из подмодуля `mcp/activity` работает постоянно (launchd
+или systemd), следит за каталогом с проектами, пишет журнал изменений в
+SQLite и по cron собирает сводки. `agentcli` его не запускает, а подключается
+по MCP Streamable HTTP (`http://127.0.0.1:7878/mcp`): показывает сводки в TUI
+по `Ctrl+A`, пересказывает их моделью чата и, если включено, даёт модели
+читающие инструменты `activity_*`. Cargo-зависимости нет ни в одну сторону.
+
+```bash
+cargo install --path mcp/activity/crates/activity
+activity-mcp --root ~/projects
+cd agent-cli && cargo run -p agentcli -- config activity set on
+```
+
 ## Клонирование
 
 ```bash
@@ -75,6 +91,7 @@ git commit -am "Update submodules"
 
 ```bash
 cd mcp/git     && cargo test && cargo build --release
+cd mcp/activity && cargo test && cargo run --release -- --root ~/projects
 cd agent-cli   && cargo test && AGENTCLI_GIT_MCP=$PWD/../mcp/git/target/release/git-mcp cargo run -p agentcli -- chat
 cd agent-sever && cargo test && AGENTD_UPSTREAM_API_KEY=sk-... PORT=8080 cargo run --release
 ```

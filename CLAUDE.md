@@ -11,11 +11,12 @@ MCP-серверах в каталоге `mcp/`, с которыми клиен�
 | `agent-cli`    | cargo workspace: библиотека `agentcore` (`crates/core`) и бинарник `agentcli` (`crates/cli`) — консольный клиент и TUI-чат |
 | `agent-sever`  | HTTP-сервис `agentd` (axum), подключающий `agentcore` git-зависимостью |
 | `mcp/git`      | cargo workspace `git-mcp-agent`: MCP-сервер git-инструментов `git-mcp` (`crates/git`, rmcp) |
+| `mcp/activity` | cargo workspace `activity-mcp-agent`: демон `activity-mcp` (`crates/activity`, rmcp + axum + sqlx) — журнал изменений git-проектов и сводки по cron |
 
 Имя каталога `agent-sever` содержит опечатку («sever» вместо «server»), но
 именно так называется путь подмодуля — не «исправлять» пути; репозиторий на
 GitHub при этом называется `agent-server`. Аналогично подмодуль `mcp/git` —
-репозиторий `git-mcp-agent`.
+репозиторий `git-mcp-agent`, `mcp/activity` — `activity-mcp-agent`.
 
 `mcp/` — обычный каталог зонтика, а не подмодуль: в нём лежат MCP-серверы,
 каждый своим подмодулем `mcp/<имя>` со своим cargo workspace. Новый сервер
@@ -72,6 +73,27 @@ cd agent-cli && AGENTCLI_GIT_MCP=$PWD/../mcp/git/target/release/git-mcp cargo ru
 
 Путь в `AGENTCLI_GIT_MCP` для `cargo test` — абсолютный: тесты идут из
 каталога крейта.
+
+## Связь `agentcli` ↔ `activity-mcp`
+
+`activity-mcp` из `mcp/activity` — не процесс клиента, а постоянный демон
+(launchd/systemd): он следит за каталогом с проектами (`notify` + опрос
+`git`), пишет события в SQLite и по cron собирает сводки даже при закрытом
+клиенте. Поэтому транспорт — MCP Streamable HTTP на loopback
+(`http://127.0.0.1:7878/mcp`), а `agentcli` подключается к работающему
+демону на одну операцию или один ход (`crates/cli/src/activity.rs`); `--stdio`
+у демона — лишь чтение его базы для других клиентов. Сводку пересказывает
+модель чата клиента (реплика в чат), у демона нет LLM и ключей.
+
+Настройки клиента — поля `activity_*` в `Config` ядра (`agentcli config
+activity …`), не `ChatSettings`: демон один на машину. Модели в чате
+отдаются только читающие `activity_digest`, `activity_projects`,
+`activity_changes` (`CHAT_TOOLS` в `activity.rs`); вместе с git-инструментами
+их объединяет `ToolSet` из `tool_loop.rs`. Имена инструментов и формат JSON
+ответов — общий контракт, как и у `git-mcp`.
+
+Живой тест клиента против запущенного демона (из `agent-cli`):
+`AGENTCLI_ACTIVITY_URL=http://127.0.0.1:7878/mcp cargo test -p agentcli live_daemon -- --ignored`.
 
 ## Команды
 

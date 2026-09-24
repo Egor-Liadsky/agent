@@ -8,9 +8,11 @@
 | Каталог   | Репозиторий | Что это |
 |-----------|-------------|---------|
 | `mcp/git` | [Egor-Liadsky/git-mcp-agent](https://github.com/Egor-Liadsky/git-mcp-agent) | MCP-сервер git-инструментов, бинарник `git-mcp` |
+| `mcp/activity` | [Egor-Liadsky/activity-mcp-agent](https://github.com/Egor-Liadsky/activity-mcp-agent) | демон активности git-проектов со сводками по расписанию, бинарник `activity-mcp` |
 
-Клиенты связаны с серверами только процессом и протоколом MCP (JSON-RPC
-через stdin/stdout): в `Cargo.toml` серверов нет зависимостей на крейты
+Клиенты связаны с серверами только протоколом MCP — через процесс и
+stdin/stdout (`git-mcp`) или через Streamable HTTP к постоянно работающему
+демону (`activity-mcp`): в `Cargo.toml` серверов нет зависимостей на крейты
 `agent-cli` (`agentcore`, `agentclient`, `agentupstream`, `agentcli`), а
 клиент не зависит от серверов cargo-зависимостью.
 
