@@ -86,7 +86,12 @@ cd agent-cli && AGENTCLI_GIT_MCP=$PWD/../mcp/git/target/release/git-mcp cargo ru
 модель чата клиента (реплика в чат), у демона нет LLM и ключей.
 
 Настройки клиента — поля `activity_*` в `Config` ядра (`agentcli config
-activity …`), не `ChatSettings`: демон один на машину. Модели в чате
+activity …`, раздел «Сводки активности» в `Ctrl+P`), не `ChatSettings`:
+демон один на машину. Клиент может сам запустить демон
+(`crates/cli/src/activity_daemon.rs`), но не дочерним процессом, а
+регистрацией у супервизора — LaunchAgent launchd на macOS, unit
+`systemd --user` на Linux, — чтобы демон пережил выход из TUI и
+перезагрузку; остановка снимает регистрацию. Модели в чате
 отдаются только читающие `activity_digest`, `activity_projects`,
 `activity_changes` (`CHAT_TOOLS` в `activity.rs`); вместе с git-инструментами
 их объединяет `ToolSet` из `tool_loop.rs`. Имена инструментов и формат JSON
