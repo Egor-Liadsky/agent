@@ -14,6 +14,7 @@
 | `agent-sever` | [Egor-Liadsky/agent-server](https://github.com/Egor-Liadsky/agent-server) | HTTP-сервис `agentd` (axum, SQLite через sqlx), подключающий `agentcore` git-зависимостью |
 | `mcp/git` | [Egor-Liadsky/git-mcp-agent](https://github.com/Egor-Liadsky/git-mcp-agent) | cargo workspace с MCP-сервером git-инструментов `git-mcp` (`crates/git`), который `agentcli` запускает процессом |
 | `mcp/activity` | [Egor-Liadsky/activity-mcp-agent](https://github.com/Egor-Liadsky/activity-mcp-agent) | cargo workspace с демоном `activity-mcp` (`crates/activity`): журнал изменений git-проектов и сводки по расписанию; `agentcli` подключается к нему по HTTP |
+| `mcp/pipeline` | [Egor-Liadsky/pipeline-mcp-agent](https://github.com/Egor-Liadsky/pipeline-mcp-agent) | cargo workspace с MCP-сервером `pipeline-mcp` (`crates/pipeline`): инструменты `search`, `summarize`, `save_to_file`, связанные в пайплайн |
 
 Имя каталога `agent-sever` содержит опечатку («sever» вместо «server»), но
 именно так называется путь подмодуля — не «исправлять».
@@ -64,6 +65,21 @@ activity-mcp --root ~/projects
 cd agent-cli && cargo run -p agentcli -- config activity set on
 ```
 
+### `agentcli` и `pipeline-mcp`
+
+Сервер `pipeline-mcp` из подмодуля `mcp/pipeline` даёт три инструмента одной
+цепочки: `search` находит строки в файлах каталога, `summarize` делает по ним
+сводку, `save_to_file` сохраняет её. Выход каждого шага — JSON, поля которого
+и есть аргументы следующего. `agentcli` запускает сервер процессом (stdio) и
+выполняет цепочку командой `agentcli pipeline run` либо отдаёт инструменты
+модели в чате. Своей модели у сервера нет: сводку через MCP sampling пишет
+модель клиента.
+
+```bash
+cargo install --path mcp/pipeline/crates/pipeline
+cd agent-cli && cargo run -p agentcli -- pipeline run "ToolSet" --root . --output /tmp/out
+```
+
 ## Клонирование
 
 ```bash
@@ -92,6 +108,7 @@ git commit -am "Update submodules"
 ```bash
 cd mcp/git     && cargo test && cargo build --release
 cd mcp/activity && cargo test && cargo run --release -- --root ~/projects
+cd mcp/pipeline && cargo test && cargo build --release
 cd agent-cli   && cargo test && AGENTCLI_GIT_MCP=$PWD/../mcp/git/target/release/git-mcp cargo run -p agentcli -- chat
 cd agent-sever && cargo test && AGENTD_UPSTREAM_API_KEY=sk-... PORT=8080 cargo run --release
 ```

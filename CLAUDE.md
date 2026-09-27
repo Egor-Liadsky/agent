@@ -12,11 +12,13 @@ MCP-серверах в каталоге `mcp/`, с которыми клиен�
 | `agent-sever`  | HTTP-сервис `agentd` (axum), подключающий `agentcore` git-зависимостью |
 | `mcp/git`      | cargo workspace `git-mcp-agent`: MCP-сервер git-инструментов `git-mcp` (`crates/git`, rmcp) |
 | `mcp/activity` | cargo workspace `activity-mcp-agent`: демон `activity-mcp` (`crates/activity`, rmcp + axum + sqlx) — журнал изменений git-проектов и сводки по cron |
+| `mcp/pipeline` | cargo workspace `pipeline-mcp-agent`: MCP-сервер `pipeline-mcp` (`crates/pipeline`, rmcp) — инструменты `search` → `summarize` → `save_to_file` |
 
 Имя каталога `agent-sever` содержит опечатку («sever» вместо «server»), но
 именно так называется путь подмодуля — не «исправлять» пути; репозиторий на
 GitHub при этом называется `agent-server`. Аналогично подмодуль `mcp/git` —
-репозиторий `git-mcp-agent`, `mcp/activity` — `activity-mcp-agent`.
+репозиторий `git-mcp-agent`, `mcp/activity` — `activity-mcp-agent`, `mcp/pipeline` —
+`pipeline-mcp-agent`.
 
 `mcp/` — обычный каталог зонтика, а не подмодуль: в нём лежат MCP-серверы,
 каждый своим подмодулем `mcp/<имя>` со своим cargo workspace. Новый сервер
@@ -99,6 +101,30 @@ activity …`, раздел «Сводки активности» в `Ctrl+P`), 
 
 Живой тест клиента против запущенного демона (из `agent-cli`):
 `AGENTCLI_ACTIVITY_URL=http://127.0.0.1:7878/mcp cargo test -p agentcli live_daemon -- --ignored`.
+
+## Связь `agentcli` ↔ `pipeline-mcp`
+
+`pipeline-mcp` из `mcp/pipeline` — процесс клиента, как `git-mcp`:
+`agentcli` запускает `pipeline-mcp --root <каталог> --output <каталог>` на
+одну команду или один ход и говорит с ним через stdio
+(`crates/cli/src/pipeline.rs`). Инструменты `search` и `summarize` читают,
+`save_to_file` пишет только внутрь `--output`. Контракт — JSON в
+`structuredContent`: `matches` из `search` — аргумент `summarize`, `summary`
+из `summarize` — `content` для `save_to_file`; переименование полей требует
+правки клиента (`run_pipeline`). LLM у сервера нет: `summarize` зовёт
+`sampling/createMessage`, клиент объявляет capability `sampling` и отвечает
+моделью (`AgentSampler`); без sampling сервер делает экстрактивную сводку.
+Сервис `agentd` не принимает роль `system` в истории, поэтому системный
+промпт sampling склеивается с репликой пользователя.
+
+Цепочку ведёт клиент: `agentcli pipeline run` (детерминированно, со сверкой
+числа совпадений и SHA-256 записанного) или модель в чате через `ToolSet`.
+Настройки — поля `pipeline_root`, `pipeline_output` в `Config` ядра
+(`agentcli config pipeline …`); заданный `pipeline_root` включает инструменты
+в чатах. Бинарник: `AGENTCLI_PIPELINE_MCP` → рядом с `agentcli` → `PATH`.
+
+Живой тест (из `agent-cli`):
+`AGENTCLI_PIPELINE_MCP=$PWD/../mcp/pipeline/target/release/pipeline-mcp cargo test -p agentcli live_pipeline -- --ignored`.
 
 ## Команды
 

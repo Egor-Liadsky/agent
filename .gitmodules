@@ -10,3 +10,6 @@
 [submodule "mcp/activity"]
 	path = mcp/activity
 	url = https://github.com/Egor-Liadsky/activity-mcp-agent.git
+[submodule "mcp/pipeline"]
+	path = mcp/pipeline
+	url = https://github.com/Egor-Liadsky/pipeline-mcp-agent.git
