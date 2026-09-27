@@ -77,6 +77,8 @@ cd agent-cli && cargo run -p agentcli -- config activity set on
 модель клиента.
 
 ```bash
+cargo install --git https://github.com/Egor-Liadsky/pipeline-mcp-agent pipeline-mcp
+# или из подмодуля:
 cargo install --path mcp/pipeline/crates/pipeline
 cd agent-cli && cargo run -p agentcli -- pipeline run "ToolSet" --root . --output /tmp/out
 ```
