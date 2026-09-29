@@ -15,6 +15,7 @@
 | `mcp/git` | [Egor-Liadsky/git-mcp-agent](https://github.com/Egor-Liadsky/git-mcp-agent) | cargo workspace с MCP-сервером git-инструментов `git-mcp` (`crates/git`), который `agentcli` запускает процессом |
 | `mcp/activity` | [Egor-Liadsky/activity-mcp-agent](https://github.com/Egor-Liadsky/activity-mcp-agent) | cargo workspace с демоном `activity-mcp` (`crates/activity`): журнал изменений git-проектов и сводки по расписанию; `agentcli` подключается к нему по HTTP |
 | `mcp/pipeline` | [Egor-Liadsky/pipeline-mcp-agent](https://github.com/Egor-Liadsky/pipeline-mcp-agent) | cargo workspace с MCP-сервером `pipeline-mcp` (`crates/pipeline`): инструменты `search`, `summarize`, `save_to_file`, связанные в пайплайн |
+| `mcp/index` | [Egor-Liadsky/index-mcp-agent](https://github.com/Egor-Liadsky/index-mcp-agent) | cargo workspace с `index-mcp` (`crates/index`): локальный индекс конспектов `.docx` в SQLite с эмбеддингами Ollama по двум стратегиям chunking и отчёт их сравнения |
 
 Имя каталога `agent-sever` содержит опечатку («sever» вместо «server»), но
 именно так называется путь подмодуля — не «исправлять».

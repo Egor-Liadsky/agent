@@ -10,6 +10,7 @@
 | `mcp/git` | [Egor-Liadsky/git-mcp-agent](https://github.com/Egor-Liadsky/git-mcp-agent) | MCP-сервер git-инструментов, бинарник `git-mcp` |
 | `mcp/activity` | [Egor-Liadsky/activity-mcp-agent](https://github.com/Egor-Liadsky/activity-mcp-agent) | демон активности git-проектов со сводками по расписанию, бинарник `activity-mcp` |
 | `mcp/pipeline` | [Egor-Liadsky/pipeline-mcp-agent](https://github.com/Egor-Liadsky/pipeline-mcp-agent) | пайплайн `search → summarize → save_to_file` со сводкой через MCP sampling, бинарник `pipeline-mcp` |
+| `mcp/index` | [Egor-Liadsky/index-mcp-agent](https://github.com/Egor-Liadsky/index-mcp-agent) | индекс конспектов `.docx` в SQLite с эмбеддингами локального Ollama по стратегиям chunking `fixed` и `structure` и отчёт их сравнения, бинарник `index-mcp` |
 
 Клиенты связаны с серверами только протоколом MCP — через процесс и
 stdin/stdout (`git-mcp`, `pipeline-mcp`) или через Streamable HTTP к постоянно работающему
