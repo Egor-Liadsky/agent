@@ -13,12 +13,13 @@ MCP-серверах в каталоге `mcp/`, с которыми клиен�
 | `mcp/git`      | cargo workspace `git-mcp-agent`: MCP-сервер git-инструментов `git-mcp` (`crates/git`, rmcp) |
 | `mcp/activity` | cargo workspace `activity-mcp-agent`: демон `activity-mcp` (`crates/activity`, rmcp + axum + sqlx) — журнал изменений git-проектов и сводки по cron |
 | `mcp/pipeline` | cargo workspace `pipeline-mcp-agent`: MCP-сервер `pipeline-mcp` (`crates/pipeline`, rmcp) — инструменты `search` → `summarize` → `save_to_file` |
+| `mcp/index`    | cargo workspace `index-mcp-agent`: `index-mcp` (`crates/index`, reqwest + sqlx + zip/quick-xml) — индекс `.docx` в SQLite с эмбеддингами Ollama, стратегии chunking `fixed`/`structure` и их сравнение |
 
 Имя каталога `agent-sever` содержит опечатку («sever» вместо «server»), но
 именно так называется путь подмодуля — не «исправлять» пути; репозиторий на
 GitHub при этом называется `agent-server`. Аналогично подмодуль `mcp/git` —
 репозиторий `git-mcp-agent`, `mcp/activity` — `activity-mcp-agent`, `mcp/pipeline` —
-`pipeline-mcp-agent`.
+`pipeline-mcp-agent`, `mcp/index` — `index-mcp-agent`.
 
 `mcp/` — обычный каталог зонтика, а не подмодуль: в нём лежат MCP-серверы,
 каждый своим подмодулем `mcp/<имя>` со своим cargo workspace. Новый сервер
