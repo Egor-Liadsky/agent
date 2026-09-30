@@ -15,7 +15,7 @@
 | `mcp/git` | [Egor-Liadsky/git-mcp-agent](https://github.com/Egor-Liadsky/git-mcp-agent) | cargo workspace с MCP-сервером git-инструментов `git-mcp` (`crates/git`), который `agentcli` запускает процессом |
 | `mcp/activity` | [Egor-Liadsky/activity-mcp-agent](https://github.com/Egor-Liadsky/activity-mcp-agent) | cargo workspace с демоном `activity-mcp` (`crates/activity`): журнал изменений git-проектов и сводки по расписанию; `agentcli` подключается к нему по HTTP |
 | `mcp/pipeline` | [Egor-Liadsky/pipeline-mcp-agent](https://github.com/Egor-Liadsky/pipeline-mcp-agent) | cargo workspace с MCP-сервером `pipeline-mcp` (`crates/pipeline`): инструменты `search`, `summarize`, `save_to_file`, связанные в пайплайн |
-| `mcp/index` | [Egor-Liadsky/index-mcp-agent](https://github.com/Egor-Liadsky/index-mcp-agent) | cargo workspace с `index-mcp` (`crates/index`): локальный индекс конспектов `.docx` в SQLite с эмбеддингами Ollama по двум стратегиям chunking и отчёт их сравнения |
+| `mcp/index` | [Egor-Liadsky/index-mcp-agent](https://github.com/Egor-Liadsky/index-mcp-agent) | cargo workspace с MCP-сервером `index-mcp` (`crates/index`): индекс конспектов `.docx` (чанки, эмбеддинги Ollama, SQLite), инструменты `index_search`, `index_status`, `index_models`, `index_build`, `index_compare`; `agentcli` запускает его процессом |
 
 Имя каталога `agent-sever` содержит опечатку («sever» вместо «server»), но
 именно так называется путь подмодуля — не «исправлять».
@@ -83,6 +83,26 @@ cargo install --path mcp/pipeline/crates/pipeline
 cd agent-cli && cargo run -p agentcli -- pipeline run "ToolSet" --root . --output /tmp/out
 ```
 
+### `agentcli` и `index-mcp`
+
+Сервер `index-mcp` из подмодуля `mcp/index` строит индекс конспектов `.docx`
+и ищет по нему по смыслу: `index_search` возвращает ближайшие чанки,
+`index_status` показывает, что лежит в базе, `index_models` — модели Ollama с
+эмбеддингами, `index_build` строит индекс из каталога. `agentcli` запускает
+`index-mcp serve` процессом (stdio): командами `agentcli index build|search|
+status|models`, разделом «Индекс документов» в `Ctrl+P` или отдаёт модели в
+чате `index_search` и `index_status` (`index_build` — после подтверждения).
+Поиск не смешивает модели эмбеддингов: другая модель, чем у векторов в базе,
+даёт ошибку.
+
+```bash
+cargo install --git https://github.com/Egor-Liadsky/index-mcp-agent index-mcp
+# или из подмодуля:
+cargo install --path mcp/index/crates/index
+cd agent-cli && cargo run -p agentcli -- config index set --root ~/notes --db ~/index.db
+cd agent-cli && cargo run -p agentcli -- index build && cargo run -p agentcli -- index search "вопрос"
+```
+
 ## Клонирование
 
 ```bash
@@ -112,6 +132,7 @@ git commit -am "Update submodules"
 cd mcp/git     && cargo test && cargo build --release
 cd mcp/activity && cargo test && cargo run --release -- --root ~/projects
 cd mcp/pipeline && cargo test && cargo build --release
+cd mcp/index    && cargo test && cargo build --release
 cd agent-cli   && cargo test && AGENTCLI_GIT_MCP=$PWD/../mcp/git/target/release/git-mcp cargo run -p agentcli -- chat
 cd agent-sever && cargo test && AGENTD_UPSTREAM_API_KEY=sk-... PORT=8080 cargo run --release
 ```

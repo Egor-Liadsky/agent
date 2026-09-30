@@ -13,7 +13,7 @@ MCP-серверах в каталоге `mcp/`, с которыми клиен�
 | `mcp/git`      | cargo workspace `git-mcp-agent`: MCP-сервер git-инструментов `git-mcp` (`crates/git`, rmcp) |
 | `mcp/activity` | cargo workspace `activity-mcp-agent`: демон `activity-mcp` (`crates/activity`, rmcp + axum + sqlx) — журнал изменений git-проектов и сводки по cron |
 | `mcp/pipeline` | cargo workspace `pipeline-mcp-agent`: MCP-сервер `pipeline-mcp` (`crates/pipeline`, rmcp) — инструменты `search` → `summarize` → `save_to_file` |
-| `mcp/index`    | cargo workspace `index-mcp-agent`: `index-mcp` (`crates/index`, reqwest + sqlx + zip/quick-xml) — индекс `.docx` в SQLite с эмбеддингами Ollama, стратегии chunking `fixed`/`structure` и их сравнение |
+| `mcp/index`    | cargo workspace `index-mcp-agent`: `index-mcp` (`crates/index`, rmcp + sqlx + reqwest) — индекс конспектов `.docx`: команды `build`, `compare` и MCP-сервер `serve` |
 
 Имя каталога `agent-sever` содержит опечатку («sever» вместо «server»), но
 именно так называется путь подмодуля — не «исправлять» пути; репозиторий на
@@ -126,6 +126,47 @@ activity …`, раздел «Сводки активности» в `Ctrl+P`), 
 
 Живой тест (из `agent-cli`):
 `AGENTCLI_PIPELINE_MCP=$PWD/../mcp/pipeline/target/release/pipeline-mcp cargo test -p agentcli live_pipeline -- --ignored`.
+
+## Связь `agentcli` ↔ `index-mcp`
+
+`index-mcp` из `mcp/index` — процесс клиента, как `git-mcp` и `pipeline-mcp`:
+`agentcli` запускает `index-mcp serve --db <файл> [--strategy --model
+--ollama-url]` на одну команду, одну сборку из настроек TUI или один ход и
+говорит с ним через stdio (`crates/cli/src/index.rs`). Cargo-зависимости нет
+ни в одну сторону: в `mcp/index/**/Cargo.toml` нет `agentcore`/`agentcli`, в
+`agent-cli` нет `index-mcp`; из MCP-крейтов в `mcp/index` только `rmcp`
+(server), и в `crates/core` нет ни `rmcp`, ни `clap`.
+
+Имена инструментов и JSON в `structuredContent` — общий контракт (описан в
+README `mcp/index` и `agent-cli`): `index_search` → `hits:[{chunk_id, source,
+section, score, text}]`, `index_status` → `strategies:[{strategy, chunks,
+model, dim, built_at, params, …}]`, `index_models` → `models:[{name, dim, …}]`,
+`index_build` → `strategies:[{strategy, chunks, files, chars, embed_ms}]`.
+`READ_ONLY_TOOLS` в `index.rs` классифицирует их по имени: читают `index_search`,
+`index_status`, `index_models`, всё остальное (в том числе `index_build`)
+пишущее и требует подтверждения в TUI, а в `ask` отклоняется. Модели чата
+отдаются только `index_search`, `index_status`, `index_build`
+(`CHAT_TOOLS`); `index_compare` пишет отчёт и клиентом не используется.
+
+Инвариант поиска: модель запроса (`--model`, в клиенте — `index_model`) должна
+совпасть с моделью векторов стратегии, иначе `index_search` отвечает ошибкой.
+Размерность модели `index_build` берёт у Ollama, а не из умолчания 768.
+Умолчания `build` (`nomic-embed-text`, `num_ctx 2048`, `max_section 1500`,
+`chunk_size 1200`, `overlap 200`) лежат в `mcp/index` (`main.rs::defaults`).
+
+Настройки клиента — поля `index_*` в `Config` ядра (`agentcli config index
+set|show|clear`, раздел «Индекс документов» в `Ctrl+P`), не `ChatSettings`;
+инструменты в чатах включает заданный `index_db`. Бинарник:
+`AGENTCLI_INDEX_MCP` → рядом с `agentcli` → `PATH`.
+
+```bash
+(cd mcp/index && cargo build --release)
+cd agent-cli && AGENTCLI_INDEX_MCP=$PWD/../mcp/index/target/release/index-mcp cargo run -p agentcli -- index status
+```
+
+Живые тесты (нужен Ollama с `nomic-embed-text`; из `agent-cli`):
+`AGENTCLI_INDEX_MCP=$PWD/../mcp/index/target/release/index-mcp cargo test -p agentcli live_index -- --ignored`
+и из `mcp/index`: `INDEX_MCP_OLLAMA_URL=http://localhost:11434 cargo test live_ollama -- --ignored`.
 
 ## Команды
 
