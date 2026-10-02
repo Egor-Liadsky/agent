@@ -1,0 +1,214 @@
+- generic [ref=f1e3]:
+  - navigation [ref=f1e4]:
+    - heading "finplan" [level=1] [ref=f1e6]
+    - generic [ref=f1e7]:
+      - link "Дашборд" [ref=f1e8] [cursor=pointer]:
+        - /url: /
+      - link "Операции" [ref=f1e9] [cursor=pointer]:
+        - /url: /transactions
+      - link "Счета" [ref=f1e10] [cursor=pointer]:
+        - /url: /accounts
+      - link "Категории" [ref=f1e11] [cursor=pointer]:
+        - /url: /categories
+      - link "Капитал" [ref=f1e12] [cursor=pointer]:
+        - /url: /capital
+    - button "Выйти" [ref=f1e14] [cursor=pointer]
+  - main [ref=f1e15]:
+    - generic [ref=f1e16]:
+      - generic [ref=f1e17]:
+        - heading "Операции" [level=1] [ref=f1e18]
+        - button "+ Новая операция" [ref=f1e20] [cursor=pointer]
+      - generic [ref=f1e21]:
+        - heading "Фильтры" [level=3] [ref=f1e23]
+        - generic [ref=f1e24]:
+          - generic [ref=f1e25]:
+            - generic [ref=f1e26]: Период
+            - combobox [ref=f1e27]:
+              - option "Текущий месяц" [selected]
+              - option "Последние 30 дней"
+              - option "Предыдущий месяц"
+              - option "Квартал"
+              - option "Год"
+              - option "Свои даты"
+          - generic [ref=f1e28]:
+            - generic [ref=f1e29]: Виды
+            - generic [ref=f1e30]:
+              - generic [ref=f1e31] [cursor=pointer]:
+                - checkbox "Доход" [ref=f1e32]
+                - text: Доход
+              - generic [ref=f1e33] [cursor=pointer]:
+                - checkbox "Расход" [ref=f1e34]
+                - text: Расход
+              - generic [ref=f1e35] [cursor=pointer]:
+                - checkbox "Перевод" [ref=f1e36]
+                - text: Перевод
+              - generic [ref=f1e37] [cursor=pointer]:
+                - checkbox "Корректировка" [ref=f1e38]
+                - text: Корректировка
+              - generic [ref=f1e39] [cursor=pointer]:
+                - checkbox "Проценты" [ref=f1e40]
+                - text: Проценты
+          - generic [ref=f1e41]:
+            - generic [ref=f1e42]: Счёты
+            - generic [ref=f1e44] [cursor=pointer]:
+              - checkbox "Наличные" [ref=f1e45]
+              - text: Наличные
+          - generic [ref=f1e46]:
+            - generic [ref=f1e47]: Категории
+            - generic [ref=f1e48]:
+              - generic [ref=f1e49] [cursor=pointer]:
+                - checkbox "С подкатегориями" [checked] [ref=f1e50]
+                - text: С подкатегориями
+              - generic [ref=f1e51] [cursor=pointer]:
+                - checkbox "Еда" [ref=f1e52]
+                - text: Еда
+              - generic [ref=f1e53] [cursor=pointer]:
+                - checkbox "Продукты" [ref=f1e54]
+                - text: Продукты
+              - generic [ref=f1e55] [cursor=pointer]:
+                - checkbox "Кафе и рестораны" [ref=f1e56]
+                - text: Кафе и рестораны
+              - generic [ref=f1e57] [cursor=pointer]:
+                - checkbox "Кофе" [ref=f1e58]
+                - text: Кофе
+              - generic [ref=f1e59] [cursor=pointer]:
+                - checkbox "Транспорт" [ref=f1e60]
+                - text: Транспорт
+              - generic [ref=f1e61] [cursor=pointer]:
+                - checkbox "Общественный транспорт" [ref=f1e62]
+                - text: Общественный транспорт
+              - generic [ref=f1e63] [cursor=pointer]:
+                - checkbox "Такси" [ref=f1e64]
+                - text: Такси
+              - generic [ref=f1e65] [cursor=pointer]:
+                - checkbox "Автомобиль" [ref=f1e66]
+                - text: Автомобиль
+              - generic [ref=f1e67] [cursor=pointer]:
+                - checkbox "Жильё" [ref=f1e68]
+                - text: Жильё
+              - generic [ref=f1e69] [cursor=pointer]:
+                - checkbox "Аренда" [ref=f1e70]
+                - text: Аренда
+              - generic [ref=f1e71] [cursor=pointer]:
+                - checkbox "Коммунальные услуги" [ref=f1e72]
+                - text: Коммунальные услуги
+              - generic [ref=f1e73] [cursor=pointer]:
+                - checkbox "Связь и интернет" [ref=f1e74]
+                - text: Связь и интернет
+              - generic [ref=f1e75] [cursor=pointer]:
+                - checkbox "Здоровье" [ref=f1e76]
+                - text: Здоровье
+              - generic [ref=f1e77] [cursor=pointer]:
+                - checkbox "Аптека" [ref=f1e78]
+                - text: Аптека
+              - generic [ref=f1e79] [cursor=pointer]:
+                - checkbox "Врачи" [ref=f1e80]
+                - text: Врачи
+              - generic [ref=f1e81] [cursor=pointer]:
+                - checkbox "Покупки" [ref=f1e82]
+                - text: Покупки
+              - generic [ref=f1e83] [cursor=pointer]:
+                - checkbox "Одежда" [ref=f1e84]
+                - text: Одежда
+              - generic [ref=f1e85] [cursor=pointer]:
+                - checkbox "Товары для дома" [ref=f1e86]
+                - text: Товары для дома
+              - generic [ref=f1e87] [cursor=pointer]:
+                - checkbox "Техника" [ref=f1e88]
+                - text: Техника
+              - generic [ref=f1e89] [cursor=pointer]:
+                - checkbox "Развлечения" [ref=f1e90]
+                - text: Развлечения
+              - generic [ref=f1e91] [cursor=pointer]:
+                - checkbox "Подписки" [ref=f1e92]
+                - text: Подписки
+              - generic [ref=f1e93] [cursor=pointer]:
+                - checkbox "Хобби" [ref=f1e94]
+                - text: Хобби
+              - generic [ref=f1e95] [cursor=pointer]:
+                - checkbox "Мероприятия" [ref=f1e96]
+                - text: Мероприятия
+              - generic [ref=f1e97] [cursor=pointer]:
+                - checkbox "Путешествия" [ref=f1e98]
+                - text: Путешествия
+              - generic [ref=f1e99] [cursor=pointer]:
+                - checkbox "Образование" [ref=f1e100]
+                - text: Образование
+              - generic [ref=f1e101] [cursor=pointer]:
+                - checkbox "Подарки" [ref=f1e102]
+                - text: Подарки
+              - generic [ref=f1e103] [cursor=pointer]:
+                - checkbox "Прочие расходы" [ref=f1e104]
+                - text: Прочие расходы
+              - generic [ref=f1e105] [cursor=pointer]:
+                - checkbox "Зарплата" [ref=f1e106]
+                - text: Зарплата
+              - generic [ref=f1e107] [cursor=pointer]:
+                - checkbox "Премии" [ref=f1e108]
+                - text: Премии
+              - generic [ref=f1e109] [cursor=pointer]:
+                - checkbox "Подработка" [ref=f1e110]
+                - text: Подработка
+              - generic [ref=f1e111] [cursor=pointer]:
+                - checkbox "Кешбэк" [ref=f1e112]
+                - text: Кешбэк
+              - generic [ref=f1e113] [cursor=pointer]:
+                - checkbox "Подарки" [ref=f1e114]
+                - text: Подарки
+              - generic [ref=f1e115] [cursor=pointer]:
+                - checkbox "Прочие доходы" [ref=f1e116]
+                - text: Прочие доходы
+          - generic [ref=f1e117]:
+            - generic [ref=f1e118]: От суммы
+            - textbox "0.00" [ref=f1e119]
+          - generic [ref=f1e120]:
+            - generic [ref=f1e121]: До суммы
+            - textbox "999999.99" [ref=f1e122]
+          - generic [ref=f1e123]:
+            - generic [ref=f1e124]: Поиск
+            - textbox "Поиск по комментарию (мин. 2 символа)" [ref=f1e125]
+      - generic [ref=f1e126]:
+        - generic [ref=f1e127]:
+          - generic [ref=f1e128]: Доходы
+          - generic [ref=f1e129]: 1,000.00 RUB
+        - generic [ref=f1e130]:
+          - generic [ref=f1e131]: Расходы
+          - generic [ref=f1e132]: 150.00 RUB
+        - generic [ref=f1e133]:
+          - generic [ref=f1e134]: Всего
+          - generic [ref=f1e135]: 850.00 RUB
+      - table [ref=f1e137]:
+        - rowgroup [ref=f1e138]:
+          - row [ref=f1e139]:
+            - columnheader "Дата" [ref=f1e140]
+            - columnheader "Счёт / Перевод" [ref=f1e141]
+            - columnheader "Категория" [ref=f1e142]
+            - columnheader "Сумма" [ref=f1e143]
+            - columnheader "Комментарий" [ref=f1e144]
+            - columnheader "Статус" [ref=f1e145]
+            - columnheader "Действия" [ref=f1e146]
+        - rowgroup [ref=f1e147]:
+          - row [ref=f1e148]:
+            - cell "Sep 29, 2026" [ref=f1e149]
+            - cell "Наличные" [ref=f1e150]
+            - cell "Продукты" [ref=f1e151]
+            - cell "−150.00 RUB" [ref=f1e152]
+            - cell "еда" [ref=f1e153]
+            - cell "Проведена" [ref=f1e154]
+            - cell [ref=f1e156]:
+              - generic [ref=f1e157]:
+                - button "✎" [ref=f1e158]
+                - button "↶" [ref=f1e159]
+                - button "→" [ref=f1e160]
+          - row [ref=f1e161]:
+            - cell "Sep 29, 2026" [ref=f1e162]
+            - cell "Наличные" [ref=f1e163]
+            - cell "Прочие доходы" [ref=f1e164]
+            - cell "+1,000.00 RUB" [ref=f1e165]
+            - cell "руб" [ref=f1e166]
+            - cell "Проведена" [ref=f1e167]
+            - cell [ref=f1e169]:
+              - generic [ref=f1e170]:
+                - button "✎" [ref=f1e171]
+                - button "↶" [ref=f1e172]
+                - button "→" [ref=f1e173]
