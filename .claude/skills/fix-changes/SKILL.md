@@ -34,7 +34,7 @@ repo dir (`git -C <dir>` or `cd <dir> && …`): there is no shared workspace,
   formatted, so it would touch unrelated files.
 - Never commit: `target/`, `logs/`, `agentd.db*`, `.env`,
   `agent-sever/invariants.toml`, `agent-sever/.cargo/config.toml`,
-  `openspec-prompt-*.md`, any file with API keys (`sk-…`), tokens or
+  temporary prompt files, any file with API keys (`sk-…`), tokens or
   passwords. If one shows in `git status`, leave it and name it in the report.
 - Don't commit `agent-sever/Cargo.lock` if `agentcore` has no `source` line
   (locked to a path by local `[patch]`): CI and the image build with
@@ -60,9 +60,8 @@ PR opened to `main`. Don't update the root pointer until the PR is merged —
 the root would point to a commit not in `main`.
 
 Source of truth: `/Users/egor_lyadskiy/ai/CLAUDE.md` (core change order,
-commit language, README updated with behavior) and active OpenSpec changes in
-`openspec/changes/<name>/` of the repo that holds the code. If the diff
-breaks them (e.g. `ratatui` or `clap` in `crates/core`, changed `AGENTD_*`
+commit language, README updated with behavior) and the repository instructions
+of the repo that holds the code. If the diff breaks them (e.g. `ratatui` or `clap` in `crates/core`, changed `AGENTD_*`
 var or hotkey without a README update), report it before committing; the
 user decides.
 
@@ -71,15 +70,15 @@ user decides.
 1. **Read.** In root, `agent-cli`, `agent-sever` run
    `git branch --show-current`, `git status --short`, `git log --oneline -10`,
    `git diff`, `git diff --staged`. Read `proposal.md` and `tasks.md` of
-   unarchived changes in `openspec/changes/` to know the task and its name.
+   relevant issue or task notes to know the task and its name.
    Stage nothing until the whole diff is read: write messages from content,
    not file names.
 
 2. **Plan.** Group changes by meaning: one group = one commit = one repo.
    For each group list repo, commit title, files. Separately list files that
    must not be committed and conflicts with `CLAUDE.md`. Code, tests and
-   README of one change are one group. OpenSpec artifacts go with the code or
-   in a separate commit like `Archive <change>, sync <capability> spec`.
+README of one change are one group. Planning notes go with the code or in a
+separate commit.
    Don't create files or change working-tree content.
 
 3. **Branch.** The project works directly in `main`. On `main` — stay. On
@@ -99,7 +98,7 @@ user decides.
    and list files it would rewrite. Don't use clippy as a check: the service
    has ~200 warnings, new ones get lost.
 
-   Changes only in `.md`, `openspec/`, `docs/` need no build — report the
+   Changes only in `.md` and `docs/` need no build — report the
    check as skipped for that reason.
 
 5. **Commit submodules.** `agent-cli` first, then `agent-sever` (service may
@@ -145,7 +144,7 @@ user decides.
 
 8. **Umbrella repo.** After submodule pushes, in root `git add` the changed
    pointers (`agent-cli`, `agent-sever`) and root edits (`CLAUDE.md`,
-   `openspec/…`, `.claude/…`) by path. Message as in history:
+   `.claude/…`) by path. Message as in history:
    `Update agent-sever submodule for <topic>` or
    `Update agent-cli and agent-sever submodules for <topic>`. Then
    `git push origin main`. Don't commit stray untracked root files (e.g.
@@ -170,6 +169,6 @@ user decides.
    `cargo test --locked` per repo; skipped commands named with reason. Files
    `rustfmt` would rewrite. Result of each `git push`, PR link if any.
 3. Decisions and deferred items: how commits were split and why, what was
-   left uncommitted and why, conflicts with `CLAUDE.md` and OpenSpec (README
+   left uncommitted and why, conflicts with `CLAUDE.md` (README
    not updated, terminal crate in core).
-4. One concrete next step, e.g. archive the finished OpenSpec change.
+4. One concrete next step.

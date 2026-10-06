@@ -47,7 +47,7 @@ plus the rule for when it disagrees with reality.
 Numbered, fixed order, at least five:
 
 1. **Read** — what to read before the first edit (`AGENTS.md`, repo README,
-   `openspec/changes/<name>/`, existing code and tests).
+   task notes, existing code and tests).
 2. **Scope** — which repo (`agent-cli` or `agent-sever`), crates, modules,
    files are touched; what must not be created.
 3. **Implement** — order across crates/modules/sections and why. If both
@@ -56,8 +56,8 @@ Numbered, fixed order, at least five:
 4. **Check** — exact full commands and the dir to run them from (not "run
    tests"; `cargo` fails in the umbrella root). On failure: quote the
    shortest decisive output line and don't claim success.
-5. **Record** — where to write decisions before reporting: OpenSpec
-   `design.md` or `tasks.md`, README, commit body.
+5. **Record** — where to write decisions before reporting: README or commit
+   body.
 
 ### Report
 
@@ -74,7 +74,7 @@ Numbered, fixed order, at least five:
 2. Mark empty slots as blocking (answer changes the prompt's core) or
    non-blocking (a sane default works).
 3. Before asking, read the repo: root `AGENTS.md`, README and `Cargo.toml`
-   of the target submodule, active `openspec/changes/`. Don't ask what files
+   of the target submodule and relevant task notes. Don't ask what files
    or the request already answer. If files contradict the request, say so and
    use the fact from files.
 4. Close blocking slots in one `AskUserQuestion` call: max 3–4 questions,
@@ -109,8 +109,8 @@ what the executor may change, where to record decisions. One
 
 1. "What may the executor change?" — tests and service code if the bug is
    there (recommended); plus core in `agent-cli`; tests only, list code bugs.
-2. "Where to record decisions?" — commit body (recommended); new OpenSpec
-   change with `design.md`; nowhere, chat report only.
+2. "Where to record decisions?" — commit body (recommended); README; nowhere,
+   chat report only.
 
 User picked the recommended options. Result (shown in English here; the real
 output follows the user's language):
@@ -142,8 +142,8 @@ Bounds (break only with explicit user consent):
 
 cargo test in agent-sever passes: zero failures, no new #[ignore]. Each fix
 is explainable — clear whether test or code was wrong. Source of truth:
-service README.md and openspec/specs/; if README, spec and code disagree,
-ask the user, don't pick silently.
+   service README.md and code; if README and code disagree, ask the user,
+   don't pick silently.
 
 ## Steps
 
