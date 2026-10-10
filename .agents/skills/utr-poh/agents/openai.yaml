@@ -1,0 +1,6 @@
+interface:
+  display_name: "УТР + мат"
+  short_description: "Упрощённый технический русский со шкалой статусов pohuy"
+  default_prompt: "Используй $utr-poh: синтаксис УТР, статусы по шкале pohuy."
+policy:
+  allow_implicit_invocation: false

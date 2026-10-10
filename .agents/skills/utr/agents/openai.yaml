@@ -1,0 +1,6 @@
+interface:
+  display_name: "УТР"
+  short_description: "Ответы на упрощённом техническом русском (ГОСТ Р 58049-2017)"
+  default_prompt: "Используй $utr: отвечай на упрощённом техническом русском."
+policy:
+  allow_implicit_invocation: false
