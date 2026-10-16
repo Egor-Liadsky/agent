@@ -13,7 +13,8 @@ MCP-серверах в каталоге `mcp/`, с которыми клиен�
 | `mcp/git`      | cargo workspace `git-mcp-agent`: MCP-сервер git-инструментов `git-mcp` (`crates/git`, rmcp) |
 | `mcp/activity` | cargo workspace `activity-mcp-agent`: демон `activity-mcp` (`crates/activity`, rmcp + axum + sqlx) — журнал изменений git-проектов и сводки по cron |
 | `mcp/pipeline` | cargo workspace `pipeline-mcp-agent`: MCP-сервер `pipeline-mcp` (`crates/pipeline`, rmcp) — инструменты `search` → `summarize` → `save_to_file` |
-| `mcp/index`    | cargo workspace `index-mcp-agent`: `index-mcp` (`crates/index`, rmcp + sqlx + reqwest) — индекс конспектов `.docx`: команды `build`, `compare` и MCP-сервер `serve` |
+| `mcp/index`    | cargo workspace `index-mcp-agent`: `index-mcp` (`crates/index`, rmcp + sqlx + reqwest) — индекс `.docx` и UTF-8 исходников/документации проекта: команды `build`, `compare` и MCP-сервер `serve` |
+| `mcp/crm`      | отдельный проект `crm-mcp` (rmcp), локальная реализация read-only инструментов `crm_list_tickets`, `crm_get_ticket` и `crm_get_user`; ещё не зарегистрирован подмодулем |
 
 Имя каталога `agent-sever` содержит опечатку («sever» вместо «server»), но
 именно так называется путь подмодуля — не «исправлять» пути; репозиторий на
@@ -21,10 +22,12 @@ GitHub при этом называется `agent-server`. Аналогично
 репозиторий `git-mcp-agent`, `mcp/activity` — `activity-mcp-agent`, `mcp/pipeline` —
 `pipeline-mcp-agent`, `mcp/index` — `index-mcp-agent`.
 
-`mcp/` — обычный каталог зонтика, а не подмодуль: в нём лежат MCP-серверы,
-каждый своим подмодулем `mcp/<имя>` со своим cargo workspace. Новый сервер
+`mcp/` — обычный каталог зонтика, а не подмодуль: зарегистрированные MCP-серверы
+лежат отдельными подмодулями `mcp/<имя>` со своими cargo workspace. Новый сервер
 подключается `git submodule add <url> mcp/<имя>` и добавляется строкой в
 таблицы `mcp/README.md`, `README.md` и этого файла.
+`mcp/crm` сейчас содержит незарегистрированную локальную реализацию; пока у неё
+нет согласованного удалённого репозитория, это обычный каталог, не подмодуль.
 
 Коммитить работу в каждом подмодуле из его каталога и пушить в его собственный
 `origin`. Зонтичный репозиторий хранит лишь указатель на коммит подмодуля:
@@ -137,16 +140,32 @@ activity …`, раздел «Сводки активности» в `Ctrl+P`), 
 `agent-cli` нет `index-mcp`; из MCP-крейтов в `mcp/index` только `rmcp`
 (server), и в `crates/core` нет ни `rmcp`, ни `clap`.
 
+У сборки общий тип корпуса: `source_type=docx|project`; отсутствие в старом
+MCP-вызове означает `docx`. Для проекта используется фактический корень
+открытого проекта. Git выбирает отслеживаемые и новые неигнорируемые файлы;
+обычный каталог обходится рекурсивно. Индексатор читает распространённые
+UTF-8 исходники, документацию, конфигурации и скрипты; пропускает `.git`,
+каталоги сборки, бинарные/не-UTF-8 файлы, `.env`, приватные ключи, ссылки и
+файлы больше 1 МиБ. Причины пропусков видны в диагностике. Проектные ID
+чанков содержат hex относительного пути, поэтому `mod.rs` в разных каталогах
+не конфликтуют; DOCX ID прежние. База хранит `source_type` и `corpus_root`,
+принадлежит одному корпусу и отказывает при сборке другого. Эмбеддинги всех
+выбранных стратегий записываются одной транзакцией после успешного расчёта.
+
 Имена инструментов и JSON в `structuredContent` — общий контракт (описан в
 README `mcp/index` и `agent-cli`): `index_search` → `hits:[{chunk_id, source,
 section, score, text}]`, `index_status` → `strategies:[{strategy, chunks,
 model, dim, built_at, params, …}]`, `index_models` → `models:[{name, dim, …}]`,
-`index_build` → `strategies:[{strategy, chunks, files, chars, embed_ms}]`.
+`index_build` → `{source_type, corpus_root, diagnostics,
+strategies:[{strategy, chunks, files, chars, embed_ms}]}`, `index_clear` удаляет
+чанки, векторы и метаданные только совпадающего проектного корпуса. Аргумент
+`database` клиента сверяется с базой процесса и не меняет `--db`.
 `READ_ONLY_TOOLS` в `index.rs` классифицирует их по имени: читают `index_search`,
-`index_status`, `index_models`, всё остальное (в том числе `index_build`)
-пишущее и требует подтверждения в TUI, а в `ask` отклоняется. Модели чата
-отдаются только `index_search`, `index_status`, `index_build`
-(`CHAT_TOOLS`); `index_compare` пишет отчёт и клиентом не используется.
+`index_status`, `index_models`, всё остальное (в том числе `index_build` и
+`index_clear`) пишущее и требует подтверждения в TUI, а в `ask` отклоняется.
+`CHAT_TOOLS` отдаёт модели `index_search`, `index_status`, `index_build`;
+в проектном чате клиент дополнительно предлагает `index_clear`. В документном
+чате очистка не предлагается; `index_compare` пишет отчёт и клиентом не используется.
 
 Инвариант поиска: модель запроса (`--model`, в клиенте — `index_model`) должна
 совпасть с моделью векторов стратегии, иначе `index_search` отвечает ошибкой.
@@ -155,8 +174,13 @@ model, dim, built_at, params, …}]`, `index_models` → `models:[{name, dim, �
 `chunk_size 1200`, `overlap 200`) лежат в `mcp/index` (`main.rs::defaults`).
 
 Настройки клиента — поля `index_*` в `Config` ядра (`agentcli config index
-set|show|clear`, раздел «Индекс документов» в `Ctrl+P`), не `ChatSettings`;
-инструменты в чатах включает заданный `index_db`. Бинарник:
+set|show|clear`, раздел «Индекс корпуса» в `Ctrl+P`), не `ChatSettings`;
+`index_source_type` отсутствует в старых конфигах и тогда означает `docx`.
+Инструменты включаются заданным `index_db` и переключателем поиска. В
+проектном чате индексные инструменты добавляются к `project_*` без обязательного
+поиска до ответа и без документного grounding; `index_build` подтверждается
+с показом открытого корня и базы. Git пишущие, pipeline и activity-инструменты
+в проектном чате не включаются. Бинарник:
 `AGENTCLI_INDEX_MCP` → рядом с `agentcli` → `PATH`.
 
 ```bash

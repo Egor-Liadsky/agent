@@ -13,7 +13,10 @@
 | `mcp/git` | [Egor-Liadsky/git-mcp-agent](https://github.com/Egor-Liadsky/git-mcp-agent) | cargo workspace с MCP-сервером git-инструментов `git-mcp` (`crates/git`), который `agentcli` запускает процессом |
 | `mcp/activity` | [Egor-Liadsky/activity-mcp-agent](https://github.com/Egor-Liadsky/activity-mcp-agent) | cargo workspace с демоном `activity-mcp` (`crates/activity`): журнал изменений git-проектов и сводки по расписанию; `agentcli` подключается к нему по HTTP |
 | `mcp/pipeline` | [Egor-Liadsky/pipeline-mcp-agent](https://github.com/Egor-Liadsky/pipeline-mcp-agent) | cargo workspace с MCP-сервером `pipeline-mcp` (`crates/pipeline`): инструменты `search`, `summarize`, `save_to_file`, связанные в пайплайн |
-| `mcp/index` | [Egor-Liadsky/index-mcp-agent](https://github.com/Egor-Liadsky/index-mcp-agent) | cargo workspace с MCP-сервером `index-mcp` (`crates/index`): индекс конспектов `.docx` (чанки, эмбеддинги Ollama, SQLite), инструменты `index_search`, `index_status`, `index_models`, `index_build`, `index_compare`; `agentcli` запускает его процессом |
+| `mcp/index` | [Egor-Liadsky/index-mcp-agent](https://github.com/Egor-Liadsky/index-mcp-agent) | cargo workspace с MCP-сервером `index-mcp` (`crates/index`): индекс `.docx` и UTF-8 файлов проекта (чанки, эмбеддинги Ollama, SQLite), инструменты `index_search`, `index_status`, `index_models`, `index_build`, `index_clear`, `index_compare`; `agentcli` запускает его процессом |
+| `mcp/crm` | репозиторий ещё не зарегистрирован | локальная реализация `crm-mcp` для чтения демо-CRM; после согласования удалённого репозитория подключить подмодулем |
+
+`mcp/crm` пока обычный локальный каталог без `origin`, а не подмодуль.
 
 Имя каталога `agent-sever` содержит опечатку («sever» вместо «server»), но
 именно так называется путь подмодуля — не «исправлять».
@@ -84,14 +87,20 @@ cd agent-cli && cargo run -p agentcli -- pipeline run "ToolSet" --root . --outpu
 ### `agentcli` и `index-mcp`
 
 Сервер `index-mcp` из подмодуля `mcp/index` строит индекс конспектов `.docx`
-и ищет по нему по смыслу: `index_search` возвращает ближайшие чанки,
+или UTF-8 исходников и документации проекта, затем ищет по нему по смыслу:
+`index_search` возвращает ближайшие чанки,
 `index_status` показывает, что лежит в базе, `index_models` — модели Ollama с
-эмбеддингами, `index_build` строит индекс из каталога. `agentcli` запускает
-`index-mcp serve` процессом (stdio): командами `agentcli index build|search|
-status|models`, разделом «Индекс документов» в `Ctrl+P` или отдаёт модели в
-чате `index_search` и `index_status` (`index_build` — после подтверждения).
-Поиск не смешивает модели эмбеддингов: другая модель, чем у векторов в базе,
-даёт ошибку.
+эмбеддингами, `index_build` строит индекс, `index_clear` очищает индекс проекта.
+`agentcli` запускает
+`index-mcp serve` процессом (stdio): командами `agentcli index build|clear|search|
+status|models`, разделом «Индекс корпуса» в `Ctrl+P` или отдаёт модели в
+обычных чатах `index_search` и `index_status` (`index_build` — после
+подтверждения). В проектном чате к `project_*` добавляются четыре индексных
+инструмента; обязательный документный поиск отключён, а сборка привязана к
+открытому корню проекта; `index_clear` доступен с подтверждением и очищает
+только индекс этого проекта. База хранит тип и корень корпуса и не позволяет
+смешивать проекты и `.docx`. Поиск не смешивает модели эмбеддингов: другая
+модель даёт ошибку.
 
 ```bash
 cargo install --git https://github.com/Egor-Liadsky/index-mcp-agent index-mcp
@@ -100,6 +109,63 @@ cargo install --path mcp/index/crates/index
 cd agent-cli && cargo run -p agentcli -- config index set --root ~/notes --db ~/index.db
 cd agent-cli && cargo run -p agentcli -- index build && cargo run -p agentcli -- index search "вопрос"
 ```
+
+Проектный пример с базой во временном каталоге и небольшим Rust-проектом без
+`.docx` (нужен Ollama с `nomic-embed-text`):
+
+```bash
+TMP=$(mktemp -d)
+cd agent-cli
+cargo run -p agentcli -- config index set --source-type project --root ~/projects/sample --db "$TMP/project.db" --strategy fixed
+cargo run -p agentcli -- index build --source-type project --min-chars 0
+cargo run -p agentcli -- index search "где реализована функция normalize_name" --strategy fixed
+```
+
+В проекте индексируются распространённые UTF-8 исходники, Markdown,
+конфигурации и скрипты. Пропускаются бинарные/не-UTF-8 файлы, `.env`,
+приватные ключи, символьные ссылки, каталоги сборки и файлы больше 1 МиБ;
+пропуски показываются как диагностика. Полная пересборка удаляет удалённые
+файлы из индекса. AST-анализ и фоновое/инкрементальное обновление не входят в
+первую версию.
+
+### Локальная CRM и `agentcli support`
+
+Мини-CRM находится в отдельном проекте `../mini-crm` и хранит тикеты и
+вымышленных демо-пользователей в `data/crm.json`. `mcp/crm` запускается как
+отдельный MCP-процесс и читает тот же файл. Команда поддержки получает тикет и
+его пользователя через `crm_get_ticket`/`crm_get_user`, ищет FAQ через
+`index-mcp` (`source_type=project`) и передаёт найденные фрагменты модели.
+Использованные файлы и разделы выводятся после ответа. Если релевантных
+подтверждений нет, ответ должен прямо сообщить о нехватке данных.
+
+Соберите два MCP-бинарника, создайте тикет в CRM и настройте индекс FAQ:
+
+```bash
+cd ../mini-crm && cargo run -- data/crm.json
+cd ../ai/mcp/crm && cargo build --release
+cd ../ai/mcp/index && cargo build --release
+cd ../ai/agent-cli
+cargo run -p agentcli -- config index set --source-type project --root ../../mini-crm/faq --db ../../mini-crm/data/faq.db --strategy fixed
+cargo run -p agentcli -- index build --source-type project --min-chars 0
+AGENTCLI_CRM_FILE=../../mini-crm/data/crm.json \
+AGENTCLI_CRM_MCP=../mcp/crm/target/release/crm-mcp \
+AGENTCLI_INDEX_MCP=../mcp/index/target/release/index-mcp \
+cargo run -p agentcli -- support ask --ticket T-001 "Почему не работает авторизация?"
+```
+
+Тот же сценарий доступен из TUI: из каталога `mini-crm` запустите
+`cargo run --manifest-path ../ai/agent-cli/Cargo.toml -p agentcli -- chat` с теми же
+переменными окружения и настройте FAQ через `Ctrl+P` → «Индекс корпуса»
+(тип `project`, каталог `faq`, база `data/faq.db`). Запуск вне Git-проекта
+сохраняет корень FAQ при сборке. В чате введите `/support T-001 Почему не
+работает авторизация?`. Команда `/support` без аргументов выводит все тикеты
+CRM. Там же можно повторно собрать или очистить индекс.
+
+Перед командой проверьте созданный в TUI ID тикета. JSON имеет `version: 1`,
+массивы `users` и `tickets`; подробности и демонстрационный FAQ приведены в
+README проекта `mini-crm`. Продукт «Люмен Тест» и клиентские записи полностью
+вымышлены. Для другого каталога JSON задайте `AGENTCLI_CRM_FILE`; для бинарника
+сервера — `AGENTCLI_CRM_MCP`.
 
 ## Клонирование
 
